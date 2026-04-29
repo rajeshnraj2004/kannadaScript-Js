@@ -1,13 +1,16 @@
 {
   "name": "kannadascriptjs",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "A programming language using Kannada + English syntax",
   "main": "src/index.js",
   "bin": {
-    "kannadascriptjs": "src/index.js"
+    "kannadascript": "src/index.js"
   },
-  "keywords": ["kannada", "language", "script"],
+  "keywords": [
+    "kannada",
+    "language",
+    "script"
+  ],
   "author": "Rajesh N",
   "license": "MIT"
 }
-

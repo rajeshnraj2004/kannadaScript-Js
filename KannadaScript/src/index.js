@@ -6,7 +6,7 @@ const fs = require("fs");
 const file = process.argv[2];
 
 if (!file) {
-  console.error("Please provide a file path as an argument.");
+  console.error("Usage: kannadascript <file.ks>");
   process.exit(1);
 }
 
@@ -27,34 +27,30 @@ function KannadaScript(content) {
     .replace(/\bstart\b/g, "")
     .replace(/\bend\b/g, "")
 
-    // VARIABLES (support var + let)
+    // VARIABLES (var + let)
     .replace(/(var|let)\s+(\w+)\s*=\s*(.+)/g, 'let $2 = $3')
 
-    // PRINT (English)
+    // PRINT
     .replace(/print\s+"([^"]*)"/g, 'console.log("$1")')
 
-    // HELU (smart print)
-    .replace(/helu\s+(.+)/g, (match, value) => {
-      value = value.trim();
+    // 🔥 HELU FIXED (order matters)
 
-      // case: helu (a)
-      if (value.startsWith("(") && value.endsWith(")")) {
-        return `console.log${value}`;
-      }
+    // 1. helu(a)
+    .replace(/helu\s*\(\s*(\w+)\s*\)/g, 'console.log($1)')
 
-      // case: helu "text" or 'text'
-      if (value.startsWith('"') || value.startsWith("'")) {
-        return `console.log(${value})`;
-      }
+    // 2. helu "text"
+    .replace(/helu\s+"([^"]*)"/g, 'console.log("$1")')
 
-      // case: helu number
-      if (!isNaN(value)) {
-        return `console.log(${value})`;
-      }
+    // 3. helu number
+    .replace(/helu\s+(\d+)/g, 'console.log($1)')
 
-      // case: helu variable
-      return `console.log(${value})`;
-    });
+    // 4. helu variable
+    .replace(/helu\s+(\w+)/g, 'console.log($1)')
+
+    // IF / ELSE
+    .replace(/if\s+(.+)$/gm, 'if ($1) {')
+    .replace(/else$/gm, '} else {')
+    .replace(/endif$/gm, '}');
 }
 
 // execute
