@@ -27,31 +27,40 @@ function KannadaScript(content) {
     .replace(/\bstart\b/g, "")
     .replace(/\bend\b/g, "")
 
-    // print with quotes
+    // VARIABLES (support var + let)
+    .replace(/(var|let)\s+(\w+)\s*=\s*(.+)/g, 'let $2 = $3')
+
+    // PRINT (English)
     .replace(/print\s+"([^"]*)"/g, 'console.log("$1")')
 
-    // HELU (smart handling)
+    // HELU (smart print)
     .replace(/helu\s+(.+)/g, (match, value) => {
       value = value.trim();
 
-      // if already string (" or ')
-      if (
-        value.startsWith('"') ||
-        value.startsWith("'")
-      ) {
+      // case: helu (a)
+      if (value.startsWith("(") && value.endsWith(")")) {
+        return `console.log${value}`;
+      }
+
+      // case: helu "text" or 'text'
+      if (value.startsWith('"') || value.startsWith("'")) {
         return `console.log(${value})`;
       }
 
-      // if number
+      // case: helu number
       if (!isNaN(value)) {
         return `console.log(${value})`;
       }
 
-      // otherwise treat as string
-      return `console.log("${value}")`;
+      // case: helu variable
+      return `console.log(${value})`;
     });
 }
 
 // execute
 const jsCode = KannadaScript(content);
+
+// debug (optional)
+// console.log(jsCode);
+
 eval(jsCode);
