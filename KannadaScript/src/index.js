@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const path = require("path");
 
-// get file
-const file = process.argv[2];
+// get file path
+const input = process.argv[2];
 
-if (!file) {
+if (!input) {
   console.error("Usage: kannadascript <file.ks>");
   process.exit(1);
 }
+
+const file = path.resolve(input);
 
 // read file
 let content;
@@ -21,42 +24,79 @@ try {
 
 // transpiler
 function KannadaScript(content) {
-  return content
+  const lines = content.split("\n");
+  let output = [];
+
+  for (let line of lines) {
+    let code = line.trim();
+
+    // skip empty lines
+    if (!code) continue;
 
     // remove start/end
-    .replace(/\bstart\b/g, "")
-    .replace(/\bend\b/g, "")
+    if (code === "start" || code === "end") continue;
 
-    // VARIABLES (var + let)
-    .replace(/(var|let)\s+(\w+)\s*=\s*(.+)/g, 'let $2 = $3')
+    // VARIABLES
+    if (/^(var|let)\s+/.test(code)) {
+      code = code.replace(
+        /^(var|let)\s+(\w+)\s*=\s*(.+)/,
+        "let $2 = $3"
+      );
+      output.push(code);
+      continue;
+    }
 
-    // PRINT
-    .replace(/print\s+"([^"]*)"/g, 'console.log("$1")')
+    // HELU (print anything safely)
+    if (/^helu\s+/.test(code)) {
+      const expr = code.replace(/^helu\s+/, "");
+      output.push(`console.log(${expr})`);
+      continue;
+    }
 
-    // 🔥 HELU FIXED (order matters)
+    // PRINT (string only)
+    if (/^print\s+/.test(code)) {
+      code = code.replace(
+        /^print\s+"([^"]*)"/,
+        'console.log("$1")'
+      );
+      output.push(code);
+      continue;
+    }
 
-    // 1. helu(a)
-    .replace(/helu\s*\(\s*(\w+)\s*\)/g, 'console.log($1)')
+    // IF
+    if (/^if\s+/.test(code)) {
+      const condition = code.replace(/^if\s+/, "");
+      output.push(`if (${condition}) {`);
+      continue;
+    }
 
-    // 2. helu "text"
-    .replace(/helu\s+"([^"]*)"/g, 'console.log("$1")')
+    // ELSE
+    if (code === "else") {
+      output.push("} else {");
+      continue;
+    }
 
-    // 3. helu number
-    .replace(/helu\s+(\d+)/g, 'console.log($1)')
+    // ENDIF
+    if (code === "endif") {
+      output.push("}");
+      continue;
+    }
 
-    // 4. helu variable
-    .replace(/helu\s+(\w+)/g, 'console.log($1)')
+    // fallback (raw JS line)
+    output.push(code);
+  }
 
-    // IF / ELSE
-    .replace(/if\s+(.+)$/gm, 'if ($1) {')
-    .replace(/else$/gm, '} else {')
-    .replace(/endif$/gm, '}');
+  return output.join("\n");
 }
 
-// execute
+// transpile
 const jsCode = KannadaScript(content);
 
 // debug (optional)
 // console.log(jsCode);
 
-eval(jsCode);
+try {
+  eval(jsCode);
+} catch (err) {
+  console.error("Execution Error:", err.message);
+}
